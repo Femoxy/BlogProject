@@ -172,3 +172,6 @@ const sharePost =  async (req, res) => {
 module.exports = {createPost, viewOne, viewAll,
      postUpdate, deletePost, comment,
     allComments, deleteComment, likes, sharePost}
+
+
+    

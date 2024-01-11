@@ -96,15 +96,6 @@ const logIn = async (req, res)=>{
     }
 }
 
-// const createPost = async (req, res) => {
-//     try {
-//       const post = (await postModel.create(req.body)).populate("post");
-//       res.json(post);
-//     } catch (error) {
-//       res.status(500).json({ error: 'Internal Server Error' });
-//     }
-//   };
-
 const oneUser = async(req, res)=>{
     try {
         const users = await blogModel.findById(req.params.id).populate("post");

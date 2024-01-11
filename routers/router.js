@@ -4,7 +4,6 @@ const { createUser, logIn, oneUser, getAll, logOut } = require('../controllers/c
 const {createPost, viewOne, viewAll, postUpdate, deletePost, comment, allComments, deleteComment, likes, sharePost} = require('../controllers/postController');
 const { authenticate, admin } = require('../middleware/authenticate');
 
-
 const router = express.Router();
 
 router.post('/signup', createUser);

@@ -9,6 +9,7 @@ const validateBlog = (data) => {
     return validateUser.validate(data);
 };
 
+
 const validateLogin = (data) => {
     const validateUser = hapiJoiValidator.object({
         
