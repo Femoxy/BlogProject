@@ -3,7 +3,6 @@ const mongoose=require('mongoose');
 const blogSchema = new mongoose.Schema({
     Username:{
         type: String,
-
     },
     email:{
         type: String
@@ -11,11 +10,14 @@ const blogSchema = new mongoose.Schema({
     password: {
         type: String
     },
+    favorite:[{
+        type: String
+    }],
 
-     post:{
+     post:[{
         type:mongoose.Schema.Types.ObjectId,
         ref: "post"
-    },
+    }],
 
 }, {timestamps: true})
 
@@ -30,12 +32,19 @@ const postSchema = new mongoose.Schema({
         user:String,
         text:String 
         }],
-    likes:[{
+    likes:{
         type: Number,
+        default: 0
+    },
+    likeBy: [{
+        type: String,
+    }], 
+    shares:{
+        type:Number,
         default:0
-    }],
-        shares:[{type:Number,
-        default:0
+    },
+    sharedBy: [{
+        type: String,
     }],
 
     blog:{

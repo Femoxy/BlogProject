@@ -1,48 +1,21 @@
-const {postModel} = require("../Models/model")
-
-//const blogModel = require('../Models/model')
-
-// const createPost=async(req,res)=>{
-//     try {
-
-//         const postOwner = await user.findById(req.params.id)
-//         const {title, content} = req.body
-
-//        const createpost= await new postModel({title, content})
-       
-//        //first method
-//        postOwner.post.push(createpost);
-//        createpost.save();
-//        postOwner.save()
-
-//       //second method
-//        //createPost.link = postOwner
-//        //await createPost.save()
-
-//        res.status(200).json({
-//         message: "post saved successfully",
-//         //data:createPost,
-//         FEMIEBEN: postOwner
-//        })
-        
-//     } catch (error) {
-//         res.status(500).json({
-//             message: error.message
-//         })
-        
-//     }
-// }
+const {blogModel,postModel} = require("../Models/model")
 
 
 //create post
 const createPost= async (req, res) => {
     try {
         const {title, content} = req.body;
-      const post = new postModel({title, content});
+        const postOwner = await blogModel.findById(req.user.userId)
+      const post = new postModel({title:title, content:content});
+      if(!post){
+        return res.status(404).json('Post not found')
+      }
       await post.save();
+      postOwner.post.push(post)
+      postOwner.save()
       res.json({message: 'Post created successfully', post});
     } catch (error) {
-      res.status(500).json({ message: 'Error creating post'});
+      res.status(500).json({ message:"internal server error "+ error.message});
     }
   };
 
@@ -50,6 +23,9 @@ const createPost= async (req, res) => {
  const viewOne = async (req, res) => {
     try {
       const post = await postModel.findById(req.params.postId);
+      if(!post){
+        return res.json({message: 'PostId Incorrect'})
+      }
       res.json(post);
 
     } catch (error) {
@@ -61,10 +37,16 @@ const createPost= async (req, res) => {
   const viewAll = async(req, res) =>{
     try {
         const posts = await postModel.find();
-        res.json(posts);
+        if(posts.length===0){
+            return res.status(404).json({message: 'No post found'})
+          }
+        res.status(200).json({
+          message: `There are ${posts.length} posts in the database`,
+          posts
+        });
         
     } catch (error) {
-        res.status(404).json({ error: 'Post not found' });
+        res.status(500).json( error.message );
     }
   }
 
@@ -85,7 +67,7 @@ const createPost= async (req, res) => {
         res.json({message: 'post deleted successfully'}, post)
         
     } catch (error) {
-        
+        res.status(500).json(error.message)
     }
   }
 
@@ -95,16 +77,86 @@ const createPost= async (req, res) => {
         const {user, text} = req.body;
         const post = await postModel.findById(req.params.postId);
         if(post){
-            post.comments.push({user, text});
+            post.comments.push(req.body);
             await post.save();
             res.json({message: 'comment is successfully added', post});
         } else {
-            res.status(404).json({message: 'post not found'})
+            return res.status(404).json({message: 'post not found'})
         }
   } catch (error) {
-    res.status(404).json({ error: 'Error adding comment' });
+    return res.status(404).json({ error: 'Error adding comment' });
   }
   };
+
+  //Like a post
+//   const likePost = async (req, res) => {
+//     try {
+//         const Username = req.user.Username;
+//         const post = await postModel.findById(req.params.postId);
+//         if (!post) {
+//             return res.status(404).json({
+//                 message: "Post not found"
+//             });
+//         }
+//         const indexOfUser = post.likeBy.indexOf(Username);
+//         if (indexOfUser === -1) {
+//             // If the user hasn't liked the post, add the like
+//             post.likes += 1;
+//             post.likeBy.push(Username);
+//         } else {
+//             // If the user has already liked the post, remove the like
+//             post.likes -= 1;
+//             post.likeBy.splice(indexOfUser, 1); // Remove the user from likeBy array
+//         }
+//         await post.save();
+//         res.status(200).json({
+//             message: "Like updated successfully",
+//             likes: post.likes,
+//             likeBy: post.likeBy
+//         });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({
+//             message: "Internal server error"+error.message
+//         });
+//     }
+// };
+
+        // Function to Like a Post
+const likePost = async (req, res) => {
+  try {
+    const username = req.user.Username;
+    const postId = req.params.postId;
+    const post = await postModel.findById(postId);
+    // Check if the user has already liked the post
+    const userLiked = post.likeBy.indexOf(username);
+    // userLiked will be -1 if not in the array
+    if (userLiked === -1) {
+      // User hasn't liked the post, so add like
+      post.likeBy.push(username);
+    
+      post.likes += 1;
+      await post.save(); 
+      return res.status(200).json({
+        message: 'Post liked successfully',
+        likes: post.likes,
+        likeBy: post.likeBy,
+      });
+    } else {
+      // User has already liked the post, so remove like
+      post.likeBy.splice(userLiked, 1);
+      post.likes -= 1;
+      await post.save();
+      return res.status(200).json({
+        message: 'Unliked',
+        
+      });
+    } 
+
+  } catch (error) {
+    res.status(404).json({ message: error.message });
+  }
+}
 
   // View comments on a post
 const allComments= async (req, res) => {
@@ -117,7 +169,7 @@ const allComments= async (req, res) => {
       }
       
     } catch (error) {
-      res.status(404).json({ error: 'Error retrieving comments' });
+      res.status(500).json({ error: 'Error retrieving comments '+error.message });
     }
   };
   
@@ -126,7 +178,8 @@ const deleteComment= async (req, res) => {
   try {
     const post = await postModel.findById(req.params.postId);
     if (post) {
-      post.comments.id(req.params.commentId).remove();
+      //post.comments.id(req.params.commentId).remove();
+      post.comments(req.params.commentId).remove();
       await post.save();
       res.json({ message: 'Comment deleted successfully', post });
     } else {
@@ -154,24 +207,30 @@ const likes = async (req, res) => {
 // Share a post
 const sharePost =  async (req, res) => {
     try {
-      const user = req.body.user;
-      const post = await postModel.findById(req.params.postId);
-      if (post) {
-        post.likes.push(user);
-        post.shares.push(user);
+      const user = req.user.Username;
+      const postId= req.params.postId
+      const post = await postModel.findById(postId);
+      const indexOfUser = post.sharedBy.indexOf(user)
+      if (indexOfUser ===-1) {  
+        post.sharedBy.push(user);
+        post.shares +=1
         await post.save();
-        res.json({ message: 'Post shared successfully', post });
+        res.json({ message: 'Post shared successfully', 
+        shares:post.shares,
+        sharedBy: post.sharedBy });
       } else {
+        post.sharedBy.splice(indexOfUser, 1)
+        post.shares -=1
+        await post.save()
         res.status(404).json({ message: 'Problem sharing post' });
       }
     } catch (error) {
       res.status(500).json({ message: error.message});
   }
-  };
+}
 
 module.exports = {createPost, viewOne, viewAll,
      postUpdate, deletePost, comment,
-    allComments, deleteComment, likes, sharePost}
+    allComments, deleteComment, likePost, likes, sharePost
+}
 
-
-    
